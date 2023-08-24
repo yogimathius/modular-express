@@ -19,13 +19,11 @@ app.listen(PORT, () =>
 const users = {
   123: {
     id: "123",
-    name: "Morty",
     email: "morty@notRick.com",
     password: "notCats",
   },
   234: {
     id: "234",
-    name: "Bender",
     email: "bender@robot.com",
     password: "cigar",
   },
@@ -45,7 +43,6 @@ app.get("/", (req, res) => {
 
 app.get("/home", (req, res) => {
   console.log("cookies obj =============>", req.cookies);
-  // const templateVars =
 
   res.render("index", { cookies: req.cookies });
 });
@@ -104,24 +101,24 @@ app.post("/login", (req, res) => {
     return res.status(400).send("password does not match");
   }
 
-  res.cookie("user", { id: user.id, name: user.name });
+  res.cookie("userID", user.id);
   res.redirect("/home");
 });
 
 app.get("/protected", (req, res) => {
-  const user = req.cookies.user;
+  const userID = req.cookies.userID;
 
-  if (!user) {
+  if (!userID) {
     return res.status(401).send("Unauthorized");
   }
 
-  const foundUser = users[user.id];
+  const foundUser = users[userID];
 
   if (!foundUser) {
     return res.status(401).send("Invalid Cookie");
   }
 
-  res.render("protected");
+  res.render("protected", foundUser);
 });
 
 app.post("/logout", (req, res) => {
