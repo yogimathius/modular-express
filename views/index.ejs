@@ -7,8 +7,8 @@
     <title>Home Stuff</title>
   </head>
   <body>
-    <% if (cookies && cookies.userID) {%>
-    <h1>Welcome <%= cookies.userID %></h1>
+    <% if (user) {%>
+    <h1>Welcome <%= user.email %></h1>
     <p>Registerd users only click <a href="/protected">here</a></p>
     <form method="POST" action="/logout">
       <button>Logout</button>

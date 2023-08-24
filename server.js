@@ -1,13 +1,23 @@
 const express = require("express");
 const morgan = require("morgan");
-const cookieParser = require("cookie-parser");
+// const cookieParser = require("cookie-parser");
+const cookieSession = require("cookie-session");
+const bcrypt = require("bcrypt");
 
 const app = express();
 const PORT = 3000;
+const SALT_ROUNDS = 10;
+const salt = bcrypt.genSaltSync(SALT_ROUNDS);
+const cookieSessionConfig = {
+  name: "myLoginSession",
+  keys: ["my-secret-key"],
+  maxAge: 24 * 60 * 60 * 1000, // 24 hours
+};
 
+app.use(cookieSession(cookieSessionConfig));
 app.use(morgan("dev"));
 app.use(express.urlencoded({ extended: false }));
-app.use(cookieParser());
+// app.use(cookieParser());
 
 app.set("view engine", "ejs");
 
@@ -38,13 +48,10 @@ const findUserByEmail = (email) => {
 };
 
 app.get("/", (req, res) => {
-  res.send("hey im here listening");
-});
-
-app.get("/home", (req, res) => {
-  console.log("cookies obj =============>", req.cookies);
-
-  res.render("index", { cookies: req.cookies });
+  console.log("cookies obj =============>", req.session);
+  // const user = users[req.cookies.userID];
+  const user = users[req.session.userID];
+  res.render("index", { user });
 });
 
 app.get("/register", (req, res) => {
@@ -62,10 +69,15 @@ app.post("/register", (req, res) => {
   // create a random id
   const id = Math.random().toString(36).substring(2, 5);
   // create a new user object
+
+  const hashedPassword = bcrypt.hashSync(password, salt);
+
+  console.log("hashing password: ", hashedPassword);
+
   const user = {
     id,
     email,
-    password, // Store our hashed password instead of our plain text!
+    password: hashedPassword, // Store our hashed password instead of our plain text!
   };
 
   // add the new user object to `users`
@@ -96,18 +108,23 @@ app.post("/login", (req, res) => {
   if (!user) {
     return res.status(400).send("a user with that email does not exist");
   }
+  console.log("user password from db: ", user.password);
+  console.log("password from login: ", password);
 
-  if (user.password !== password) {
+  const isMatch = bcrypt.compareSync(password, user.password);
+
+  if (!isMatch) {
     return res.status(400).send("password does not match");
   }
 
-  res.cookie("userID", user.id);
-  res.redirect("/home");
+  // res.cookie("userID", user.id);
+  req.session.userID = user.id;
+  res.redirect("/");
 });
 
 app.get("/protected", (req, res) => {
-  const userID = req.cookies.userID;
-
+  // const userID = req.cookies.userID;
+  const userID = req.session.userID;
   if (!userID) {
     return res.status(401).send("Unauthorized");
   }
@@ -122,6 +139,7 @@ app.get("/protected", (req, res) => {
 });
 
 app.post("/logout", (req, res) => {
-  res.clearCookie("user");
+  // res.clearCookie("userID");
+  req.session = null;
   res.redirect("/login");
 });
