@@ -1,12 +1,24 @@
 const express = require("express");
 const cookieParser = require("cookie-parser");
+const cookieSession = require("cookie-session");
+const bcrypt = require("bcrypt");
 
 const app = express();
+
+const saltRounds = 10;
+
+const salt = bcrypt.genSaltSync(saltRounds);
+
+const cookieSessionConfig = {
+  name: "Session",
+  keys: ["key1", "key2"],
+};
 
 // Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(cookieParser());
+// app.use(cookieParser());
+app.use(cookieSession(cookieSessionConfig));
 
 // Setting up view envine
 app.set("view engine", "ejs");
@@ -35,14 +47,19 @@ app.get("/login", (req, res) => {
 });
 
 app.get("/home", (req, res) => {
-  if (!req.cookies.firstName) {
+  // if (!req.cookies.firstName) {
+  //   console.log("You are not allowed to be here!");
+  //   return res.redirect("/login");
+  // }
+
+  if (!req.session.firstName) {
     console.log("You are not allowed to be here!");
     return res.redirect("/login");
   }
 
   const templateVariables = {
-    firstName: req.cookies.firstName,
-    lastName: req.cookies.lastName,
+    firstName: req.session.firstName,
+    lastName: req.session.lastName,
   };
   return res.render("home", templateVariables);
 });
@@ -56,14 +73,18 @@ app.post("/create/user", (req, res) => {
                     `);
   }
 
+  const hash = bcrypt.hashSync(req.body.password, salt);
+
+  console.log("hash: ", hash);
+
   listOfUsers[req.body.email] = {
     firstName: req.body.firstName,
     lastName: req.body.lastName,
-    password: req.body.password,
+    password: hash,
   };
 
-  res.cookie("firstName", req.body.firstName);
-  res.cookie("lastName", req.body.lastName);
+  req.session.firstName = req.body.firstName;
+  req.session.lastName = req.body.lastName;
 
   // Redirect to home page
   return res.redirect("/home");
@@ -74,21 +95,27 @@ app.post("/process/login", (req, res) => {
   if (!listOfUsers[req.body.email]) {
     return res.send("<h1>This user doesn't exist!</h1>");
   }
-
+  console.log(req.body.password);
+  console.log(listOfUsers[req.body.email].password);
   // Validate that the passwords match
-  if (listOfUsers[req.body.email].password !== req.body.password) {
+
+  const passwordMatches = bcrypt.compareSync(
+    req.body.password,
+    listOfUsers[req.body.email].password
+  );
+
+  if (!passwordMatches) {
     return res.send("<h1>Wrong credentials</h1>");
   }
 
-  res.cookie("firstName", listOfUsers[req.body.email].firstName);
-  res.cookie("lastName", listOfUsers[req.body.email].lastName);
+  req.session.firstName = listOfUsers[req.body.email].firstName;
+  req.session.lastName = listOfUsers[req.body.email].lastName;
 
   return res.redirect("/home");
 });
 
 app.post("/logout", (req, res) => {
-  res.clearCookie("firstName");
-  res.clearCookie("lastName");
+  req.session = null;
   return res.redirect("/login");
 });
 
