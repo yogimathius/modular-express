@@ -3,11 +3,23 @@
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title> Login </title>
+        <title> Registration </title>
     </head>
     <body>
-        <h1> Login </h1>
-        <form method="POST" action="/process/login">
+        <h1> Registration </h1>
+        <form method="POST" action="/create/user">
+            <div>
+                <label for="firstName">
+                    First name:
+                </label>
+                <input type="text" name="firstName" id="firstName">
+            </div>
+            <div>
+                <label for="lastName">
+                    Last name:
+                </label>
+                <input type="text" name="lastName" id="lastName">
+            </div>
             <div>
                 <label for="email">
                     Email:
@@ -21,7 +33,7 @@
                 <input type="password" name="password" id="password">
             </div>
             <button>
-                Login
+                Register
             </button>
         </form>
     </body>
